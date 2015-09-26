@@ -1,22 +1,8 @@
 var ipaddress = '0.0.0.0';
-var port      = 80 //8080;
-ERROROBJECTforJSON={};
-//pastebin run M9T2iHcv
+var port      = 80;
 fs      = require('fs');
 
 console.log(__dirname);
-/*
-process.on('uncaughtException', function (err) {
-//	var json=JSON.stringify({"error":err.message});
-	echo("error"+err.message+err.stack);
-	include("turtle.js").disconnectAllTurtle()
-	for(var i in wss.clients){//might trigger deadlock of error of death D:
-		wss.clients[i].send(JSON.stringify({"error":err.message+err.stack,"ERROROBJECTforJSON":(ERROROBJECTforJSON||"")}));
-		wss.clients[i].close();
-	}
-  //console.error(err);
-});
-*/
 ___dirname=__dirname
 process.on('uncaughtException', function (err) {
   console.log('Caught exception: ' + err);
@@ -41,7 +27,6 @@ process.include=function(fileName){//Make sure the files are in SS directory ins
 	if(global[fileNameWithoutExt])return global[fileNameWithoutExt];
 	return global[fileNameWithoutExt]=Function(fs.readFileSync(__dirname+'/ss/'+fileName)+'')();	
 }
-//Mongo JS vs MongoDB??? 
 tempInclude=process.tempInclude;
 include=process.include;
 
@@ -127,7 +112,7 @@ var server = http.createServer(function(request, response) {
 });
 
 server.listen( port, ipaddress, function() {
-    console.log(ipaddress + ' Server is listening on port '+port);
+    console.log(ipaddress + ' HTTP Server is listening on port '+port);
 });
 
 wss = new WebSocketServer({
@@ -154,42 +139,12 @@ wss.on('connection', function(ws) {
         this.echo=function(msg){this.ec(msg,jsonIDCaller);};//might lead to mixed jsonIDCaller if operated concurrently in both sync/async mode. Check me.
         switch(json["command"]){
 			case "install":tempInclude("install.js").install(this);break;
-			case "uninstall":tempInclude("uninstall.js").uninstall(this);break;
-	        case "register":tempInclude("register.js").register(json["data"],this);break;
-	        case "login":tempInclude("login.js").login(json["data"],this);break;
-			case "info":tempInclude("info.js").info(json["data"],this);break;
-			case "listDevices":include("networking.js").listDevice(json["data"],this);break;
-			case "relayToDevice":include("networking.js").sendToThisDevice(json["data"],this);break;
-			case "joinNetwork":include("networking.js").joinNetwork(json["data"],this);break;//if you update this file, you need to restart server for this to take effect
-			case "sendJSONTo":include("networking.js").sendJSON(json["data"],this);break;//if you update this file, you need to restart server for this to take effect
-			//case "messanger":tempInclude("messanger.js").info(json["data"],ws);break;
-			//case "notification":tempInclude("info.js").info(json["data"],ws);break;
-			case "notify":tempInclude("notification.js").notify(json["data"],this);break;
-			case "readFile":tempInclude("fileSystem.js").readFile(json["data"],this);break;
-			case "notifgetnew":tempInclude("notification.js").notifgetnew(json["data"],this);break;
-			case "notifgetall":tempInclude("notification.js").notifgetall(json["data"],this);break;
-			case "turtle":include("turtle.js").turtle(json["data"],this);break;
-	        case "evaler":ws.send(JSON.stringify({"evalData":JSON.stringify((1,eval)(json["data"])+""),"jsonOrigin":message}));break;//remove this line prior to official deployment to the internet
         }
-    } catch (e) {//else
-    	//console window interfaces
-    	//ws.send("ERROR ALTERNATIVE PATH USED")
-        //ws.send(JSON.stringify({"evalData":JSON.stringify(e.stack),"jsonOrigin":message,"errorCatched":true}));//remove this line prior to official deployment to the internet
-    }
-  	//var json=JSON.stringify({"evalData":(1,eval)(message)});
-  
-  //	ws.send(new Function("return "+message)().toString());//will be sent as binary btw
+    } catch (e) {
   });
 });
 
 
- u2i=function(username,ws){
-	return (wss.username[username]?wss.username[username].id:
-				(ws&&ws.targetedUsername&&ws.targetedUsername[username]?ws.targetedUsername[username]:false
-				)
-			)
-
-}
 
 generateUUID=function(){
     var hr = process.hrtime();
@@ -214,132 +169,12 @@ var tcpServer = net.createServer(function(client) {
 	client.dataMemory={};
 	client.on('error', function(err){
 		
-        if(!this.dataMemory)return;//this could lead to memory leak not closing connections properly.
-		if(!this.dataMemory.registeredTo)return;
-		delete TCPclients[this.dataMemory.registeredTo.toLowerCase()][this.add];
-		var jsonStr=JSON.stringify({command:"deviceOffline",data:{json:{message:"[\""+ this.dataMemory.address+" is offline!\"]"}, from:"",networkName:this.dataMemory.registeredTo.toLowerCase()}});
-		
-		include("networking.js").broadcastToAGuestNetwork(jsonStr, this.dataMemory.registeredTo.toLowerCase());
     });
 	client.on("close",function(){
-		delete TCPclients[this.dataMemory.registeredTo.toLowerCase()][this.add];
-		if(!this.dataMemory)return;
-		if(!this.dataMemory.registeredTo)return;
-		var jsonStr=JSON.stringify({command:"deviceOffline",data:{json:{message:"[\""+ this.dataMemory.address+" is offline!\"]"}, from:"",networkName:this.dataMemory.registeredTo.toLowerCase()}});
-		
-		include("networking.js").broadcastToAGuestNetwork(jsonStr, this.dataMemory.registeredTo.toLowerCase());
 	}.bind(client));
 	 client.on('data', function (data) {      
 		if(data instanceof Buffer) data=new Buffer(data).toString("utf-8");
-		var datArr=data.toString().split("\n\r");	
-		datArr.pop();		
-		var code=datArr.pop();
-		if(code=="LGN"){
-			console.log("Device logging in");
-			 var data=datArr;
-			 var user="";
-			 var pass=null;
-			 var add="";
-			
-			 datArr.forEach(function(val){
-				var data=val.toString().split("=");
-				if(data[0]=="u"){
-					user=data[1].split(",")[1];
-					add=data[1].split(",")[0];
-				}else if(data[0]=="p"){
-					pass=data[1];
-				}
-			 });
-			 this.dataMemory.registeredTo=user;
-			 this.dataMemory.password=pass;
-			 this.dataMemory.address=add;
-			 if(add==null){
-				this.write("print(\"This device has no address. Terminating this connection.\");");
-			 }
-			 if(!TCPclients[user.toLowerCase()]) TCPclients[user.toLowerCase()]={};
-			 TCPclients[user.toLowerCase()][add]=this;
-			 
-			if(!this.dataMemory.registeredTo){
-				this.write("setBackEndCode(\"RQ1\");print(\"It appears that this device is not registered.\");");
-				this.write("print(\"Please register this device first before connecting!\");");
-				this.write("print(\"Would you like to register now? (Y/n)\");");
-				this.write("sendBackMsg(io.read());\n\r");
-				return;
-			}
-			if(this.dataMemory.registeredTo){
-				var jsonStr=JSON.stringify({command:"deviceOnline",data:{json:{message:"[\""+add+" is now online!\"]"}, from:"",networkName:user.toLowerCase()}});
-				include("networking.js").broadcastToAGuestNetwork(jsonStr,user.toLowerCase());
-			}
-			//this.write("\n\r");
-		}
-		if(code=="SLP"){
-			
-			if(!this.dataMemory.registeredTo){
-				this.write("setBackEndCode(\"RQ1\");print(\"It appears that this device is not registered.\");");
-				this.write("print(\"Please register this device first before connecting!\");");
-				this.write("print(\"Would you like to register now? (Y/n)\");");
-				this.write("sendBackMsg(io.read());\n\r");
-				return;
-			}
-		var jsonStr=JSON.stringify({command:"deviceMessage",data:{message:datArr}, from:this.dataMemory.address,networkName:this.dataMemory.registeredTo.toLowerCase()});
-		  include("networking.js").broadcastToAGuestNetwork(jsonStr,this.dataMemory.registeredTo.toLowerCase());
-		    console.log(jsonStr);//value from clients (PRINT RESULT, ERRORS)
-			console.log(this.dataMemory);//value from clients (PRINT RESULT, ERRORS)
-			//this.write("\n\r");
-		}else if(code=="FCT"){//send function to client webworker
-		  var jsonStr=JSON.stringify({command:"deviceEvalThis",data:{json:JSON.stringify(datArr)}, from:this.dataMemory.address,networkName:this.dataMemory.registeredTo.toLowerCase()});
-		  include("networking.js").broadcastToAGuestNetwork(jsonStr,this.dataMemory.registeredTo.toLowerCase());
-		}
-		else if(code=="RQ1"){//regestering Input begin
-			if(!datArr.length)return;
-		   var userInput=datArr.pop().toString().substr(0,1);
-		   if (userInput.toLowerCase()=="y"){
-				this.write("setBackEndCode(\"RQ2\");");
-				this.write("print(\"Register this device to a user.\");");
-				this.write("print(\"Please insert a name of user. This device will be registered to that user.\");");
-				this.write("print(\"To cancel, leave it blank.\");");
-				this.write("local username=io.read();");				
-				this.write("sendBackMsg(require(\"component\").computer.address..\",\"..username);\n\r");
-		   }
-		   else{
-			this.write("print(\"Un-registered device is not authorized to stay connected. Server will now terminate this connection.\");\n\r");
-		     this.destroy();
-		   }
-		}
-		else if(code=="RQ2"){//registering device input
-		   var userInput=datArr.pop().toString();
-		   userInput=userInput.split(",");
-		   console.log(userInput);
-		   if (userInput[1].length>0){
-				this.write("Jalo={};");
-				this.write("Jalo.username='"+userInput+"';");	
-				this.write("writeToFile('Jalopeno.ini',require(\"serialization\").serialize(Jalo));\n\r");
-			    this.write("print();require(\"component\").computer.beep(300,0.75); \n\r");
-				 this.write("print(\"*SOFT GRINDING SOUND EFFECT FROM WITHIN*\");\n\r");
-				this.write("print(\"*GRINDING STOPS, [then you could almost smell something sizzling, what could that be you wonder...]*\");\n\r");
-				this.write("print(\"This device is marked and now is the property of Jalopeno Central Service. All rights and ownership of this device now belong to Jalopeno! (no, really!) \")\n\r");
-				this.write("print(\"You can access this device from [missing WWW link here, report to the Jalopeno Central Service to fix]\")\n\r");
-				this.dataMemory.registeredTo=userInput[1];
-				this.dataMemory.address=userInput[0];
-				var jsonStr=JSON.stringify({command:"deviceRegistered",data:{json:{message:"[\""+userInput[0]+" registered to your collection!\"]"}, from:"",networkName:userInput[1].toLowerCase()}});
-				include("networking.js").broadcastToAGuestNetwork(jsonStr,userInput[1].toLowerCase());
-				if(!TCPclients[userInput[1].toLowerCase()]) TCPclients[userInput[1].toLowerCase()]={};
-				TCPclients[userInput[1].toLowerCase()][userInput[0]]=this;
-		   }
-		   else{
-		    this.write("print(\"Empty input detected. Server will now cancel processing.\");\n\r");
-			this.write("print(\"Un-registered device is not authorized to stay connected. Server will now terminate this connection.\");\n\r");
-		     this.destroy();
-		   }
-		}
-		else if(this.dataMemory.registeredTo){//else just print it to the websites
-			
-		  var jsonStr=JSON.stringify({command:"deviceMessage",data:{json:datArr}, from:"",networkName:this.dataMemory.registeredTo.toLowerCase()});
-		  include("networking.js").broadcastToAGuestNetwork(jsonStr,this.dataMemory.registeredTo.toLowerCase()) && console.log(code,jsonStr);
-		  }
-		 else
-			console.log("uncaptured networking event, hackers be hacking") ;
-		console.log(datArr)
+		
 		  
     }.bind(client));
 });
