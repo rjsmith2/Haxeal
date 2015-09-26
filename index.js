@@ -34,64 +34,8 @@ include=process.include;
 var server = http.createServer(function(request, response) {
     //response.write((new Date()) + ' Received request for ' + request.url);
 	//response.writeHead(200, {'Content-Type': 'text/html'});
-	 if(request.url=="/turtle" && request.method == "GET"){
-	 	fs.readFile(__dirname+"/turtle/index.html","binary",function(err, file) {
-	 		if(err)return;
-	 		
-	 		response.writeHead(200,{"Content-Type": "text/html"});
-			response.write(file, "binary"); 
-			response.end();
-			return;
-	 	});
-	 	
-	 }
-	 else if(request.url=="/turtleCSS" && request.method == "GET"){
-	 	fs.readFile(__dirname+"/turtle/index.css","binary",function(err, file) {
-	 		if(err)return;
-	 		
-	 		response.writeHead(200);
-			response.write(file, "binary"); 
-			response.end();
-			return;
-	 	});
-	 	
-	 }
-	else if(request.url=="/turtleJS" && request.method == "GET"){
-	 	fs.readFile(__dirname+"/turtle/index.js","binary",function(err, file) {
-	 		if(err)return;
-	 		
-	 		response.writeHead(200);
-			response.write(file, "binary"); 
-			response.end();
-			return;
-	 	});
-	 	
-	 }
-	 else if (request.url=="/turtle" && request.method == "POST"){
-	 		 var data = "";
-		    request.on("data", function(chunk) {
-		        data += chunk;
-		    });
-		
-		    request.on("end", function() {
-		        var name = data.match(/id=(\w+)/);
-		        var whatDo = data.match(/whatDo=(1)/);
-		        var dataTurtle = data.match(/data=(.+?)(\?|$)/);
-		        dataTurtle=dataTurtle[1]||"";
-		        if(!name[1])return response.end();
-		       
-		         if(whatDo){
-		        	 include("turtle.js").turtleHTTP(name[1],response,dataTurtle);
-		         }else{
-		            include("turtle.js").turtleRegister(name[1],response,dataTurtle);
-		         }
-				 
-				 
-		    }.bind(request));
-		   
-	 	
-	 }else{
-	  var filename=request.url;//__dirname+request.url;
+
+		  var filename=request.url;//__dirname+request.url;
 	  filename=__dirname+"/cs/"+filename;
    
 	  fs.readFile(filename,"binary",function(err, file) {
