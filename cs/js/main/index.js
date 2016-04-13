@@ -1,15 +1,16 @@
 var currentVersion=1;
-var wsSocket=function(){};
-wsSocket.socket=null;
+wsSocket=function(){};
+wsSocket.socketer=null;
 doFunction={};
-wsSocket.socket=function(){
+var socketerCounter=0;
+wsSocket.socketer=function(){
     var socket = new WebSocket("ws://" + location.host + ":8000");
     socket.wsSocket=this;
     socket.onopen=function(){
     }
     socket.onclose=function(){
 	   	setTimeout(function(){
-			socket=wsSocket.socket();
+			socket=wsSocket.socketer();
 		},500);
     }
     socket.onmessage=function(eve){
@@ -31,31 +32,53 @@ wsSocket.socket=function(){
     return socket;
 }
 
-socket=wsSocket.socket();
+socket=wsSocket.socketer();
 function newScripter(url,cachable){
+	
+	//dont use .onload, it causes  quirky behaviors among each browser. use .onloader instead
 	var newScript=document.createElement("script");
-	document.head.appendChild(newScript);
+	newScript.charset = "utf-8";
+	newScript.async=true;
 	if(localStorage["_URL_"+url+("?v="+currentVersion)] && cachable){
-		newScript.text=localStorage["_URL_"+url+("?v="+currentVersion)];
-		setTimeout(function(){this.onload?this.onload():false;}.bind(newScript),50);
+		//newScript.text=localStorage["_URL_"+url+("?v="+currentVersion)];
+		eval(localStorage["_URL_"+url+("?v="+currentVersion)]);
+		//document.head.appendChild(newScript);
+		setTimeout(function(){this.onloader?this.onloader():false;}.bind(newScript),50);
+		
 	}
 	else{
+		
 		if(socket.readyState == 1){
+			console.log(4321,url);
 			var getFile={command:"requestFileContent",
 				data:{
-					fileName:"notification",
+					fileName:url,
 				}			   
 			};
-			socket.sendListen();
+			socket.sendListen(getFile,function(data){
+				console.log(1,this[2]);
+				this[1].text=data;
+				eval(data);
+				//document.head.appendChild(this[1]);
+				if(this[0])
+						localStorage["_URL_"+this[2]+("?v="+currentVersion)]=data;
+				setTimeout(function(){this.onloader?this.onloader():false;}.bind(this[1]),150);
+			}.bind([cachable,newScript,url]));
+			return newScript;
 		}else{
+			console.log(1234,url);
 			var xhr = new XMLHttpRequest();
 			xhr.s=newScript;
 			xhr.doCaching=cachable;
 			xhr.urlDO=url;
 			xhr.onreadystatechange = function () {
+			
 				if (this.readyState == 4) {
-					this.s.textContent=this.response;			
-					this.s.onload?this.s.onload():false;
+				console.log(2,this.urlDO);
+					this.s.text=this.response;	
+					eval(this.response);
+					//document.head.appendChild(this.s);					
+					this.s.onloader?this.s.onloader(this.response):false;
 					if(this.doCaching)
 						localStorage["_URL_"+this.urlDO+("?v="+currentVersion)]=this.responseText;
 				}
@@ -66,8 +89,11 @@ function newScripter(url,cachable){
 	}
 	return newScript;
 }
+newScripter("js/main/fetching.js",false).onloader=function(){
+	newScripter("js/main/workerController.js",false);
+};
 
-function loadNewFiles
+
 
 /*newScripter("apiMain.js",false).onload=function(){
 		loadingimgCtx.fillText("apiMain.js +",27,40);

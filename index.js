@@ -1,14 +1,17 @@
-var ipaddress = '0.0.0.0';
-var port      = 80;
 fs      = require('fs');
-
+getHaxealCSDirectory=function(){
+	return __dirname+"/cs/"+"";
+}
+getHaxealSSDirectory=function(){
+	return __dirname+"/ss/"+"";
+}
 console.log(__dirname);
 process.on('uncaughtException', function (err) {
-  console.log('Caught exception: ' + err);
+  console.log( err);
 });
 var WebSocketServer = require('ws').Server;
 var http = require('http');
-var mime = require('mime');
+mime = require('mime');
 process.tempInclude=function(fileName){//Make sure the files are in SS directory inside repo folder;
 	//check and see if this can introduce memory leak. 
 	var fileNameWithoutExt=fileName.slice(0,-3);
@@ -22,29 +25,13 @@ process.include=function(fileName){//Make sure the files are in SS directory ins
 }
 
 
-var server = http.createServer(function(request, response) {
-    //response.write((new Date()) + ' Received request for ' + request.url);
-	//response.writeHead(200, {'Content-Type': 'text/html'});
-
-		  var filename=request.url;//__dirname+request.url;
-	  filename=__dirname+"/cs/"+filename;
-   
-	  fs.readFile(filename,"binary",function(err, file) {
-	      
-			if(err) {
-				response.writeHead(200, {"Content-Type": "text/plain"});
-				response.end("bug!\n");
-				response.write(err + "\n");
-				response.end();
-				return;
-			}
-		  
-			response.writeHead(200,{"Content-Type":mime.lookup(filename)});
-			response.write(file, "binary"); // this may not work for all other like images,pdf, video, etc ;s. I may need to fix this later but for now we'll use it for html mainly.
-			response.end();
-		});
+ 
+var server = process.tempInclude("c/http_functions.js").init(http);
+wss = new WebSocketServer({
+    server: server,
+	port: 8000,
+    autoAcceptConnections: false
 });
+//to-do break this down into components.
 
-server.listen( port, ipaddress, function() {
-    console.log(ipaddress + ' HTTP Server is listening on port '+port);
-});
+process.tempInclude("c/wss_functions.js").init(wss);
